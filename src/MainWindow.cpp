@@ -60,4 +60,19 @@ MainWindow::MainWindow(App* app) :
     vBox.pack_start(*mBar, Gtk::PACK_SHRINK, 0);
 
     show_all_children();
- }
+}
+
+void MainWindow::LoadNew()
+{
+
+}
+
+void MainWindow::Save()
+{
+
+}
+
+void MainWindow::SaveAndExit() 
+{
+
+}
