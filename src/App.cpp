@@ -21,6 +21,10 @@ void App::on_activate()
 
     Glib::ustring labDir = win1->AwaitSelection();
     std::cout << "Given Lab Directory: \"" << labDir << "\"" << std::endl;
+
+    MainWindow* win2 = new MainWindow(this);
+    registerWindow(win2);
+    win2->show();
 }
 
 void App::on_hide_window(Gtk::Window* win) 
