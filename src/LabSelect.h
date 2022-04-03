@@ -12,8 +12,8 @@ public:
     // Blocks and returns with the user's selected lab directory
     Glib::ustring AwaitSelection();
 
-    // Handles each LabEntry button click
-    void onSelectLab(Glib::ustring labDir);
+    // Sets labDir and unblocks AwaitSelection()
+    void selectLab(Glib::ustring labDir);
 
 protected:
     void on_hide() override;
@@ -29,7 +29,8 @@ private:
 
     Glib::ustring labDir = "";
 
-    //void
+    // Click handler for chooseBtn
+    void onNewLabClick();
 };
 
 // A single recent lab entry

@@ -10,6 +10,8 @@ LabSelectWin::LabSelectWin() :
     set_default_geometry(500, 600);
     set_title("Select a Lab");
 
+    chooseBtn.signal_clicked().connect(sigc::mem_fun(*this, &LabSelectWin::onNewLabClick));
+
     titleLbl.set_markup("<span font='15'><b>Select a Lab</b></span>");
     recentLbl.set_markup("<span font='12'>Recent Labs</span>");
     chooseLbl.set_markup("<span font='11'>Or Select a New One</span>");
@@ -46,11 +48,30 @@ void LabSelectWin::on_hide()
     Gtk::Window::on_hide();  // Call base class method
 }
 
-void LabSelectWin::onSelectLab(Glib::ustring labDir) 
+void LabSelectWin::selectLab(Glib::ustring labDir) 
 {
     this->labDir = labDir;
 
-    gtk_main_quit();   // Unblock gtk_main() call
+    hide();   // Close window after selection
+}
+
+void LabSelectWin::onNewLabClick() 
+{
+    Gtk::FileChooserDialog chooser("Select a lab folder", Gtk::FILE_CHOOSER_ACTION_SELECT_FOLDER);  // Setup file chooser dialog
+
+    chooser.set_transient_for(*this);   // To signify parent window of dialog for window managers
+    chooser.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+    chooser.add_button("OK", Gtk::RESPONSE_OK);
+
+    switch(chooser.run())   // .run() blocks until a response has been emitted
+    {
+        case(Gtk::RESPONSE_OK):
+            selectLab(chooser.get_filename());   // Set labDir to chosen path
+            break;
+
+        default:
+            break;
+    }
 }
 
 /// LABENTRY IMPLEMENTATION ///
@@ -61,7 +82,7 @@ LabEntry::LabEntry(LabSelectWin* parent, Glib::ustring labDir) :
     chooseBtn("Select"),
     labDir(labDir)
 {
-    chooseBtn.signal_clicked().connect(sigc::bind(sigc::mem_fun(*parent, &LabSelectWin::onSelectLab), this->labDir));
+    chooseBtn.signal_clicked().connect(sigc::bind(sigc::mem_fun(*parent, &LabSelectWin::selectLab), this->labDir));
 
     pack_start(labDirLbl, Gtk::PACK_SHRINK, 0);
     pack_start(chooseBtn, Gtk::PACK_EXPAND_WIDGET, 0);
