@@ -10,14 +10,14 @@ class LabData
 {
 public:
     LabData(std::string labDir);
-
-private:
-    std::vector<std::string> machines;  // Vector of machine names
-    Matrix2D<int> machineConns;   // Each row is a single connection between machines, identified using their IDs
-    Matrix2D<float> machinePos;   // Each row represents a coordinate where a machine is placed in the network map
+    ~LabData();
 
     // Initialises machineIDs and machinePos. Calls ReadConf()
-    void EnumerateLabDir(std::string labDir);
+    void EnumerateLabDir();
+
+private:
+    std::string labDir;
+    std::vector<struct LabMachine*> machines;  // Vector of machines
 
     // Reads lab.conf to initialise machineConns structure
     void ReadConf(std::string labConf);

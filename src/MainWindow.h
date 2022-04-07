@@ -1,8 +1,10 @@
 #ifndef MAIN_WINDOW_H
 #define MAIN_WINDOW_H
 
-#include <gtkmm.h>
 #include "App.h"
+#include <giomm/simpleactiongroup.h>
+#include <gtkmm/window.h>
+#include <gtkmm/box.h>
 
 class MainWindow : public Gtk::Window 
 { 

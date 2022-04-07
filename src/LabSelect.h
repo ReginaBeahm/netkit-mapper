@@ -1,7 +1,11 @@
 #ifndef LAB_SELECT_H
 #define LAB_SELECT_H
 
-#include <gtkmm.h>
+#include <gtkmm/window.h>
+#include <gtkmm/box.h>
+#include <gtkmm/label.h>
+#include <gtkmm/scrolledwindow.h>
+#include <gtkmm/button.h>
 
 // Window for selecting a lab to graph
 class LabSelectWin : public Gtk::Window 

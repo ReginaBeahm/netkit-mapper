@@ -2,37 +2,24 @@
 #define NK_DATA_STRUCTURES_H
 
 #include <vector>
+#include <string>
 
-// Creates a dynamic 2D array using only one dimension for performance gains
-template <class T>
-class Matrix2D 
+// A specific interface on a machine (e.g. eth0)
+struct MachineInterface 
 {
-public:
-    Matrix2D(int rows, int columns);
-    Matrix2D();   // Default constructor initialises rows and columns to 0
-    ~Matrix2D();
+    char id;  // Interface number (e.g. 0 for eth0)
 
-    // Get element at given row and column
-    T GetElement(int row, int column);
+    std::string segment;  // The network segment it is attached to
+};
 
-    /* Insert element at given index. Will overwrite if an element already
-    exists at this index */
-    void InsertElement(T element, int row, int column);
+// Data about a lab machine
+struct LabMachine 
+{
+    std::string machineName;
 
-    // Expand matrix by n rows
-    void AddRows(int n);
+    std::vector<struct MachineInterface*> interfaces;
 
-    // Expand matrix by n columns
-    void AddColumns(int n);
-
-private:
-    std::vector<T> elements;   // Uses vector for easier memory management
-
-    int columns;
-    int rows;
-
-    // Get 1D index from 2D index
-    int GetIndex(int row, int column);
+    float pos[2];
 };
 
 #endif

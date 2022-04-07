@@ -1,7 +1,7 @@
 #ifndef NK_UTILS_H
 #define NK_UTILS_H
 
-#include <gtkmm.h>
+#include <gtkmm/widget.h>
 
 // Class containing some useful static functions
 class NkUtils 

@@ -1,4 +1,6 @@
 #include "MainWindow.h"
+#include <gtkmm/builder.h>
+#include <gtkmm/menubar.h>
 
 MainWindow::MainWindow(App* app) : 
     vBox(Gtk::ORIENTATION_VERTICAL, 0)

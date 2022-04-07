@@ -1,5 +1,6 @@
 #include "LabSelect.h"
 #include "NkUtils.h"
+#include <gtkmm/filechooserdialog.h>
 
 /// LABSELECTWIN IMPLEMENTATION ///
 

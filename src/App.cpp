@@ -26,6 +26,7 @@ void App::on_activate()
     if (!labDir.empty())   // Only proceed if user provided a lab directory
     {
         LabData ld(labDir);   // Initialise LabData structure
+        ld.EnumerateLabDir();
 
         MainWindow* win2 = new MainWindow(this);
         registerWindow(win2);
