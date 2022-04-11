@@ -10,6 +10,7 @@ LabSelectWin::LabSelectWin() :
 {
     set_default_geometry(500, 600);
     set_title("Select a Lab");
+    set_position(Gtk::WIN_POS_CENTER);
 
     chooseBtn.signal_clicked().connect(sigc::mem_fun(*this, &LabSelectWin::onNewLabClick));
 
@@ -24,7 +25,7 @@ LabSelectWin::LabSelectWin() :
 
     projectsView.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_ALWAYS);
     NkUtils::set_margin_both(projectsView, 10);
-
+    
     add(vBox);
 
     vBox.pack_start(titleLbl, Gtk::PACK_SHRINK, 20);

@@ -1,3 +1,4 @@
+
 #include "NkUtils.h"
 
 void NkUtils::set_margin_both(Gtk::Widget& widget, int val, Gtk::Orientation orientation /*= Gtk::ORIENTATION_HORIZONTAL*/) 

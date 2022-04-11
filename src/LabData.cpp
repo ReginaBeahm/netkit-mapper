@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <beahm/isinteger.h>
+#include <beahm/dirutils.h>
 
 namespace fs = std::filesystem;   // Rename to fs for code brevity
 
@@ -34,21 +35,8 @@ void LabData::EnumerateLabDir()
     {
         if (dirEnt.is_directory())    // If entry is a directory then it represents a lab machine
         {
-            std::string path = dirEnt.path();
-            std::string name;
-
-            int i;
-            for (i = path.length() - 1; i >= 0; i--) 
-            {
-                if (path[i] == '/') 
-                {
-                    name = path.substr(i + 1);  // Extract machine name from path
-                    break;
-                }
-            }
-
             machine = new LabMachine();
-            machine->machineName = name;
+            machine->machineName = beahm::getFileName(dirEnt.path());
 
             machines.push_back(machine);
         }
@@ -129,10 +117,34 @@ void LabData::ReadConf(std::string labConf)
                 {
                     std::cout << "Invalid machine name: " << fields[0] << std::endl;
                 }
+                else    // Add collision domain to cds if it is new
+                {
+                    bool found = false;
+                    for (const std::string s : cds) 
+                    {
+                        if (!mi->segment.compare(s))   // If collision domain is already in list ...
+                        {
+                            found = true;
+                        }
+                    }  
+                    if (!found) 
+                    {
+                        cds.push_back(mi->segment);
+                    }
+                }
             }
         }
         conf.close();
+        
+        std::cout << "Finished parsing lab.conf" << std::endl;
     }
+    else   // Couldn't open lab.conf
+    {
+        std::cout << "Failed to open lab.conf" << std::endl;
+    }
+}
 
-    std::cout << "Finished parsing lab.conf" << std::endl;
+const std::string LabData::getLabDir() 
+{
+    return labDir;
 }

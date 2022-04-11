@@ -15,9 +15,14 @@ public:
     // Initialises machineIDs and machinePos. Calls ReadConf()
     void EnumerateLabDir();
 
-private:
-    std::string labDir;
+    // Returns labDir
+    const std::string getLabDir();
+
+    std::vector<std::string> cds;   // List of unique collision domains 
     std::vector<struct LabMachine*> machines;  // Vector of machines
+
+private:
+    const std::string labDir;
 
     // Reads lab.conf to initialise machineConns structure
     void ReadConf(std::string labConf);
