@@ -14,15 +14,26 @@ LabData::LabData(std::string labDir) : labDir(labDir)
 
 LabData::~LabData() 
 {
+    std::fstream conf;
+    conf.open(labDir + "/lab.conf", std::ios::out);  // Open lab.conf file for writing
+
     for (struct LabMachine* lm : machines)  // Free dynamic allocations
     {
+        conf << "### " << lm->machineName << " Collision Domains ###" << std::endl;
         for (struct MachineInterface* mi : lm->interfaces) 
         {
+            if (mi->segment.compare("None"))    // Check that interface is connected
+            {
+                conf << lm->machineName << "[" << std::to_string((int)mi->id) << "]" << "=" << mi->segment << std::endl;
+            }
             delete mi;
         }
+        conf << std::endl;   // Make space between machines
 
         delete lm;
     }
+
+    conf.close();
 }
 
 void LabData::EnumerateLabDir() 
@@ -42,15 +53,18 @@ void LabData::EnumerateLabDir()
         }
     }
 
-    ReadConf(labDir + "/lab.conf");  // Parse lab.conf
+    ReadConf();  // Parse lab.conf
 }
 
-void LabData::ReadConf(std::string labConf) 
+void LabData::ReadConf() 
 {
     std::cout << "Parsing lab.conf ..." << std::endl;
 
     std::fstream conf;
-    conf.open(labConf, std::ios::in);  // Open lab.conf file for reading
+    conf.open(labDir + "/lab.conf", std::ios::in);  // Open lab.conf file for reading
+
+    std::fstream confBackup;    // Creats lab.backup file with original lab.conf
+    confBackup.open(labDir + "/lab.backup", std::ios::out);
 
     if (conf.is_open())
     {
@@ -58,6 +72,8 @@ void LabData::ReadConf(std::string labConf)
         struct MachineInterface* mi;
         while (getline(conf, line))  // Read config line by line
         {
+            confBackup << line << std::endl;  // Write to backup
+
             int fieldNum = 0;
             bool leave = false;   // Set if machine argument is irrelevant 
             std::string fields[3];
@@ -134,6 +150,7 @@ void LabData::ReadConf(std::string labConf)
                 }
             }
         }
+        confBackup.close();
         conf.close();
         
         std::cout << "Finished parsing lab.conf" << std::endl;

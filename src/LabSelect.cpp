@@ -86,6 +86,6 @@ LabEntry::LabEntry(LabSelectWin* parent, Glib::ustring labDir) :
 {
     chooseBtn.signal_clicked().connect(sigc::bind(sigc::mem_fun(*parent, &LabSelectWin::selectLab), this->labDir));
 
-    pack_start(labDirLbl, Gtk::PACK_SHRINK, 0);
-    pack_start(chooseBtn, Gtk::PACK_EXPAND_WIDGET, 0);
+    pack_start(labDirLbl, Gtk::PACK_EXPAND_WIDGET, 0);
+    pack_start(chooseBtn, Gtk::PACK_SHRINK, 0);
 }

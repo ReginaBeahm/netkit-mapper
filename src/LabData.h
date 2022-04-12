@@ -20,12 +20,11 @@ public:
 
     std::vector<std::string> cds;   // List of unique collision domains 
     std::vector<struct LabMachine*> machines;  // Vector of machines
+    const std::string labDir;   // Lab directory
 
 private:
-    const std::string labDir;
-
     // Reads lab.conf to initialise machineConns structure
-    void ReadConf(std::string labConf);
+    void ReadConf();
 };
 
 #endif
