@@ -33,3 +33,6 @@
 
 # VSCode configuration files
 .vscode/**
+
+# Release folder 
+release/**
