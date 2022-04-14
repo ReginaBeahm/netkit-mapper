@@ -12,7 +12,7 @@ LabData::LabData(std::string labDir) : labDir(labDir)
 
 }
 
-LabData::~LabData() 
+void LabData::SaveLab() 
 {
     std::fstream conf;
     conf.open(labDir + "/lab.conf", std::ios::out);  // Open lab.conf file for writing
@@ -26,14 +26,25 @@ LabData::~LabData()
             {
                 conf << lm->machineName << "[" << std::to_string((int)mi->id) << "]" << "=" << mi->segment << std::endl;
             }
-            delete mi;
         }
         conf << std::endl;   // Make space between machines
-
-        delete lm;
     }
 
     conf.close();
+}
+
+LabData::~LabData() 
+{
+    SaveLab();       // Saves lab on destruction
+
+    for (struct LabMachine* lm : machines)  // Free dynamic allocations
+    {
+        for (struct MachineInterface* mi : lm->interfaces) 
+        {
+            delete mi;
+        }
+        delete lm;
+    }
 }
 
 void LabData::EnumerateLabDir() 

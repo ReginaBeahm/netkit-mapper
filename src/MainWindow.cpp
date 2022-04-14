@@ -27,6 +27,7 @@ MainWindow::MainWindow(App* app, LabData* labData) :
     fileGroup->add_action("cds", sigc::mem_fun(*this, &MainWindow::OpenCDManager));
     fileGroup->add_action("viewcd", sigc::mem_fun(*this, &MainWindow::OpenCDViewer));
     fileGroup->add_action("viewmac", sigc::mem_fun(*this, &MainWindow::OpenMachineViewer));
+    fileGroup->add_action("programs", sigc::mem_fun(*this, &MainWindow::OpenPrefs));
 
     insert_action_group("file", fileGroup);
 
@@ -87,6 +88,15 @@ MainWindow::MainWindow(App* app, LabData* labData) :
     "        </item>"
     "      </section>"
     "    </submenu>"
+    "    <submenu>"
+    "      <attribute name='label'>_Preferences</attribute>"
+    "      <section>"
+    "        <item>"
+    "          <attribute name='label'>_Default Programs</attribute>"
+    "          <attribute name='action'>file.programs</attribute>"
+    "        </item>"
+    "      </section>"
+    "    </submenu>"
     "  </menu>"
     "</interface>";
 
@@ -123,12 +133,12 @@ void MainWindow::LoadNew()
 
 void MainWindow::Save()
 {
-
+    labData->SaveLab();  // Saves the lab
 }
 
 void MainWindow::SaveAndExit() 
 {
-
+    hide();   // Closes window and causes application to terminate. Lab is saved in LabData destructor
 }
 
 void MainWindow::OpenCDManager() 
@@ -165,6 +175,12 @@ void MainWindow::OpenMachineViewer()
         mcv = new MachineViewer(this, labData);
     }
     mcv->show();
+}
+
+void MainWindow::OpenPrefs() 
+{
+    ProgramsDialog pd(*this);
+    pd.AwaitChanges(labData);
 }
 
 /// ToolWindow IMPLEMENTATION ///
@@ -413,7 +429,11 @@ void CDViewer::onRowActivated(const Gtk::TreeModel::Path& path, Gtk::TreeViewCol
         {
             MachineDialog md(row[treeColumns.lm], ld->cds, *this);
 
-            while (md.AwaitChanges(ld) == MachineDialog::Response::NAME_TAKEN);   // Run until name is not taken
+            int res = md.AwaitChanges(ld);
+            while (res == MachineDialog::Response::NAME_TAKEN || res == MachineDialog::Response::OPEN_STARTUP) 
+            {
+                res = md.AwaitChanges(ld);
+            }
             
             PopulateTreeStore();    // Refresh treeStore
         }
@@ -441,7 +461,8 @@ MachineDialog::MachineDialog(LabMachine* lm, std::vector<std::string>& cds, Gtk:
 {  
     set_default_geometry(400, 400);
 
-    add_button("OK", Gtk::RESPONSE_OK);
+    add_button("Open Startup", Response::OPEN_STARTUP);
+    add_button("OK", Response::OK);
 
     addBtn.signal_clicked().connect(sigc::mem_fun(*this, &MachineDialog::onAddPress));
 
@@ -491,19 +512,11 @@ void MachineDialog::PopulateInterfaces()
     intList.GetBox().pack_start(addBtn, Gtk::PACK_SHRINK, 0);
 }
 
-int MachineDialog::DialogAlert(std::string title, std::string text) 
-{
-    Gtk::MessageDialog alert(*this, title, false, Gtk::MESSAGE_ERROR, Gtk::BUTTONS_OK, true);
-    alert.set_secondary_text(text);
-    
-    return alert.run();
-}
-
 int MachineDialog::AwaitChanges(LabData* ld) 
 {
     switch (run()) 
     {
-        case Gtk::RESPONSE_OK:
+        case Response::OK:
         {
             std::string input = nameEntry.get_text();
 
@@ -514,13 +527,13 @@ int MachineDialog::AwaitChanges(LabData* ld)
             {
                 if (!input.compare("New Machine"))    // Check that name has been modified
                 {
-                    DialogAlert("Invalid Name", "Please rename the machine before saving it");
+                    NkUtils::DialogAlert(*this, "Invalid Name", "Please rename the machine before saving it");
 
                     return Response::NAME_TAKEN;
                 }
                 else if (CheckExisting(ld, input))  // Machine name is already in use 
                 {
-                    DialogAlert("Name Taken", "The new machine must have a unique name. " + input + " is taken");
+                    NkUtils::DialogAlert(*this, "Name Taken", "The new machine must have a unique name. " + input + " is taken");
 
                     return Response::NAME_TAKEN;
                 } 
@@ -540,7 +553,7 @@ int MachineDialog::AwaitChanges(LabData* ld)
                 {
                     if (CheckExisting(ld, input))  // Machine name is already in use 
                     {
-                        DialogAlert("Name Taken", "The name " + input + " is already in use");
+                        NkUtils::DialogAlert(*this, "Name Taken", "The name " + input + " is already in use");
 
                         return Response::NAME_TAKEN;
                     } 
@@ -557,6 +570,20 @@ int MachineDialog::AwaitChanges(LabData* ld)
 
             return Response::OK;
         }
+
+        case Response::OPEN_STARTUP:     // User wishes to open .startup
+            if (ld->txtEditorPath.empty())    // Check that a text editor has been configured
+            {
+                NkUtils::DialogAlert(*this, "No Text Editor", "A text editor hasn't been configured. Please configure one in Preferences > Default Programs");
+            }
+            else 
+            {
+                std::string cmd = ld->txtEditorPath + " " + ld->labDir + "/" + lm->machineName + ".startup &";  // Only supports graphical text editors at this time
+                
+                system(cmd.c_str());
+            }
+
+            return Response::OPEN_STARTUP;
 
         default:
             return Response::OTHER;
@@ -758,7 +785,52 @@ void MachineViewer::MachineRecord::onEditPress()
 {
     MachineDialog md(lm, parent.labData->cds, parent);  // Open modification window
     
-    while (md.AwaitChanges(parent.labData) == MachineDialog::Response::NAME_TAKEN);   // Run until name is not taken
+    int res = md.AwaitChanges(parent.labData);
+    while (res == MachineDialog::Response::NAME_TAKEN || res == MachineDialog::Response::OPEN_STARTUP) 
+    {
+        res = md.AwaitChanges(parent.labData);
+    }
         
     machineLbl.set_text(lm->machineName);  // Update label text
+}
+
+/// ProgramsDialog IMPLEMENTATION ///
+
+ProgramsDialog::ProgramsDialog(Gtk::Window& parent) :
+    Gtk::Dialog("Default Programs", parent, true),
+    txtBox(Gtk::ORIENTATION_HORIZONTAL, 5)
+{
+    txtLbl.set_markup("<span font='12'>Text Editor Path:</span>");
+    txtLbl.set_halign(Gtk::ALIGN_START);
+
+    txtBox.pack_start(txtLbl, Gtk::PACK_SHRINK, 0);
+    txtBox.pack_start(txtEntry, Gtk::PACK_EXPAND_WIDGET, 0);
+
+    NkUtils::set_margin_both(txtBox, 10);
+    txtBox.set_margin_top(10);
+
+    add_button("Cancel", Gtk::RESPONSE_CANCEL);
+    add_button("OK", Gtk::RESPONSE_OK);
+
+    Gtk::Box* box = get_content_area();
+    box->set_spacing(10);
+    box->pack_start(txtBox, Gtk::PACK_SHRINK, 0);
+
+    show_all_children();
+}
+
+void ProgramsDialog::AwaitChanges(LabData* ld) 
+{
+    txtEntry.set_text(ld->txtEditorPath);
+
+    int res = run();
+
+    switch (res) 
+    {
+        case Gtk::RESPONSE_OK:
+            ld->txtEditorPath = txtEntry.get_text();  // Update text editor path
+            break;
+        default:
+            break;
+    }
 }

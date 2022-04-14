@@ -15,6 +15,9 @@ public:
     // Initialises machineIDs and machinePos. Calls ReadConf()
     void EnumerateLabDir();
 
+    // Updates the current lab.conf
+    void SaveLab();
+
     // Returns labDir
     const std::string getLabDir();
 

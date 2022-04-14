@@ -60,6 +60,9 @@ private:
 
     // Opens a view of machines
     void OpenMachineViewer();
+
+    // Opens the preferences dialog
+    void OpenPrefs();
 };
 
 /// ToolWindow DEFINITION ///
@@ -158,6 +161,7 @@ public:
     {
         NAME_TAKEN,
         OK,
+        OPEN_STARTUP,
         OTHER
     };
 
@@ -210,9 +214,6 @@ private:
 
     // Check if machine with name input exists. Returns 1 if so, 0 otherwise
     int CheckExisting(LabData* ld, std::string input);
-
-    // Run alert
-    int DialogAlert(std::string title, std::string text);
 };
 
 /// MachineViewer DEFINITION ///
@@ -251,6 +252,21 @@ private:
     void onAddPress();
 
     void onOKPress();
+};
+
+/// ProgramsDialog DEFINITION ///
+
+class ProgramsDialog : public Gtk::Dialog 
+{
+public:
+    ProgramsDialog(Gtk::Window& parent);
+
+    void AwaitChanges(LabData* ld);
+
+private:
+    Gtk::Box txtBox;    // Widgets for default text editor section
+    Gtk::Label txtLbl;
+    Gtk::Entry txtEntry;
 };
 
 #endif

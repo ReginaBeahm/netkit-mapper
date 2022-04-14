@@ -3,13 +3,15 @@
 
 #include <gtkmm/widget.h>
 
-// Class containing some useful static functions
-class NkUtils 
+// Namespace containing some useful functions
+namespace NkUtils 
 {
-public:
     /* Sets the margin on the left and right sides of a widget to val, or the top and bottom sides if orientation is set 
     to Gtk::ORIENTATION_VERTICAL */
-    static void set_margin_both(Gtk::Widget& widget, int val, Gtk::Orientation orientation = Gtk::ORIENTATION_HORIZONTAL);
+    void set_margin_both(Gtk::Widget& widget, int val, Gtk::Orientation orientation = Gtk::ORIENTATION_HORIZONTAL);
+
+    // Shows an error dialog with bold text title and description text
+    int DialogAlert(Gtk::Window& parent, std::string title, std::string text);
 };
 
 #endif
