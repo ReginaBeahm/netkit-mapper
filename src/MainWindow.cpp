@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <gtkmm/menubar.h>
+#include <gtkmm/messagedialog.h>
 
 /// MainWindow IMPLEMENTATION ///
 
@@ -411,7 +412,9 @@ void CDViewer::onRowActivated(const Gtk::TreeModel::Path& path, Gtk::TreeViewCol
         if (row[treeColumns.lm] != nullptr)   // If user did not activate a collision domain row ...
         {
             MachineDialog md(row[treeColumns.lm], ld->cds, *this);
-            md.AwaitChanges(ld);
+
+            while (md.AwaitChanges(ld) == MachineDialog::Response::NAME_TAKEN);   // Run until name is not taken
+            
             PopulateTreeStore();    // Refresh treeStore
         }
         else     // Expand to see children of collision domain
@@ -488,33 +491,76 @@ void MachineDialog::PopulateInterfaces()
     intList.GetBox().pack_start(addBtn, Gtk::PACK_SHRINK, 0);
 }
 
-void MachineDialog::AwaitChanges(LabData* ld) 
+int MachineDialog::DialogAlert(std::string title, std::string text) 
 {
-    run();
+    Gtk::MessageDialog alert(*this, title, false, Gtk::MESSAGE_ERROR, Gtk::BUTTONS_OK, true);
+    alert.set_secondary_text(text);
+    
+    return alert.run();
+}
 
-    std::string input = nameEntry.get_text();
-
-    std::string oldPath = ld->labDir + "/" + lm->machineName;
-    std::string newPath = ld->labDir + "/" + input;
-
-    std::string newFile = ld->labDir + "/" + input + ".startup";
-
-    if (!rename(oldPath.c_str(), newPath.c_str()))  // Renaming failed, possibly due to new machine
+int MachineDialog::AwaitChanges(LabData* ld) 
+{
+    switch (run()) 
     {
-        std::string oldFile = ld->labDir + "/" + lm->machineName + ".startup";
+        case Gtk::RESPONSE_OK:
+        {
+            std::string input = nameEntry.get_text();
 
-        rename(oldFile.c_str(), newFile.c_str());   // Rename startup file
-    }
-    else 
-    {
-        std::filesystem::create_directory(newPath);  // Create the directory
-        
-        std::fstream startup;
-        startup.open(newFile, std::ios::out); // Create startup file
-        startup.close();
-    }
+            std::string newPath = ld->labDir + "/" + input;
+            std::string newFile = ld->labDir + "/" + input + ".startup";
+            
+            if (lm->newMachine)   // Machine is new 
+            {
+                if (!input.compare("New Machine"))    // Check that name has been modified
+                {
+                    DialogAlert("Invalid Name", "Please rename the machine before saving it");
 
-    lm->machineName = input;   // Update machine name
+                    return Response::NAME_TAKEN;
+                }
+                else if (CheckExisting(ld, input))  // Machine name is already in use 
+                {
+                    DialogAlert("Name Taken", "The new machine must have a unique name. " + input + " is taken");
+
+                    return Response::NAME_TAKEN;
+                } 
+
+                std::filesystem::create_directory(newPath);  // Create the directory
+                
+                std::fstream startup;
+                startup.open(newFile, std::ios::out); // Create startup file
+                startup << "### " << input << " Startup File ###" << std::endl;
+                startup.close();
+
+                lm->newMachine = false;   // Machine is no longer new
+            }
+            else   // An existing machine has been modified
+            {
+                if (input.compare(lm->machineName))  // If machine has been renamed ...
+                {
+                    if (CheckExisting(ld, input))  // Machine name is already in use 
+                    {
+                        DialogAlert("Name Taken", "The name " + input + " is already in use");
+
+                        return Response::NAME_TAKEN;
+                    } 
+
+                    std::string oldPath = ld->labDir + "/" + lm->machineName;
+                    std::string oldFile = ld->labDir + "/" + lm->machineName + ".startup";
+
+                    rename(oldPath.c_str(), newPath.c_str());   // Rename files
+                    rename(oldFile.c_str(), newFile.c_str());
+                }
+            }
+
+            lm->machineName = input;   // Update machine name
+
+            return Response::OK;
+        }
+
+        default:
+            return Response::OTHER;
+    }
 }
 
 MachineDialog::InterfaceRecord::InterfaceRecord(MachineDialog& parent, MachineInterface* mi) :
@@ -601,6 +647,19 @@ void MachineDialog::onAddPress()
     intList.GetBox().reorder_child(addBtn, -1);    // Move addBtn back to bottom
 }
 
+int MachineDialog::CheckExisting(LabData* ld, std::string input) 
+{
+    for (const LabMachine* machine : ld->machines) 
+    {
+        if (!machine->machineName.compare(input))     // If names match ...
+        {
+            return 1;
+        }
+    }
+    
+    return 0;
+}
+
 /// MachineViewer IMPLEMENTATION ///
 
 MachineViewer::MachineViewer(MainWindow* parent, LabData* labData) :
@@ -645,6 +704,7 @@ void MachineViewer::onAddPress()
     LabMachine* lm = new LabMachine();
     labData->machines.push_back(lm);   // Push reference to machines list
     lm->machineName = "New Machine";
+    lm->newMachine = true;
 
     MachineRecord* machine = Gtk::make_managed<MachineRecord>(*this, lm);
     machineList.Append(machine);
@@ -697,7 +757,8 @@ MachineViewer::MachineRecord::MachineRecord(MachineViewer& parent, LabMachine* l
 void MachineViewer::MachineRecord::onEditPress() 
 {
     MachineDialog md(lm, parent.labData->cds, parent);  // Open modification window
-    md.AwaitChanges(parent.labData);
-
+    
+    while (md.AwaitChanges(parent.labData) == MachineDialog::Response::NAME_TAKEN);   // Run until name is not taken
+        
     machineLbl.set_text(lm->machineName);  // Update label text
 }

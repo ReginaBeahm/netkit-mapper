@@ -21,6 +21,7 @@ public:
     std::vector<std::string> cds;   // List of unique collision domains 
     std::vector<struct LabMachine*> machines;  // Vector of machines
     const std::string labDir;   // Lab directory
+    std::string txtEditorPath;    // Path to user's preferred text editor
 
 private:
     // Reads lab.conf to initialise machineConns structure

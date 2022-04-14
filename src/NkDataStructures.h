@@ -15,6 +15,8 @@ struct MachineInterface
 // Data about a lab machine
 struct LabMachine 
 {
+    bool newMachine = false;    // True if machine is new
+
     std::string machineName;
 
     std::vector<struct MachineInterface*> interfaces;

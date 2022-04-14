@@ -151,8 +151,15 @@ class MachineDialog : public Gtk::Dialog
 public:
     MachineDialog(LabMachine* lm, std::vector<std::string>& cds, Gtk::Window& parent);
 
-    // Wrapper around run() that waits for user to finish changing values
-    void AwaitChanges(LabData* ld);
+    // Wrapper around run() that waits for user to finish changing values. Returns Response::OK on success
+    int AwaitChanges(LabData* ld);
+
+    enum Response 
+    {
+        NAME_TAKEN,
+        OK,
+        OTHER
+    };
 
 private:
     LabMachine* lm;   // The lab machine being modified
@@ -200,6 +207,12 @@ private:
 
     // Called when an interface is added
     void onAddPress();
+
+    // Check if machine with name input exists. Returns 1 if so, 0 otherwise
+    int CheckExisting(LabData* ld, std::string input);
+
+    // Run alert
+    int DialogAlert(std::string title, std::string text);
 };
 
 /// MachineViewer DEFINITION ///
