@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <gtkmm/menubar.h>
+#include <wait.h>
 #include <gtkmm/messagedialog.h>
 
 /// MainWindow IMPLEMENTATION ///
@@ -527,13 +528,13 @@ int MachineDialog::AwaitChanges(LabData* ld)
             {
                 if (!input.compare("New Machine"))    // Check that name has been modified
                 {
-                    NkUtils::DialogAlert(*this, "Invalid Name", "Please rename the machine before saving it");
+                    NkUtils::DialogAlert(*this, Gtk::BUTTONS_OK, "Invalid Name", "Please rename the machine before saving it");
 
                     return Response::NAME_TAKEN;
                 }
                 else if (CheckExisting(ld, input))  // Machine name is already in use 
                 {
-                    NkUtils::DialogAlert(*this, "Name Taken", "The new machine must have a unique name. " + input + " is taken");
+                    NkUtils::DialogAlert(*this, Gtk::BUTTONS_OK, "Name Taken", "The new machine must have a unique name. " + input + " is taken");
 
                     return Response::NAME_TAKEN;
                 } 
@@ -553,7 +554,7 @@ int MachineDialog::AwaitChanges(LabData* ld)
                 {
                     if (CheckExisting(ld, input))  // Machine name is already in use 
                     {
-                        NkUtils::DialogAlert(*this, "Name Taken", "The name " + input + " is already in use");
+                        NkUtils::DialogAlert(*this, Gtk::BUTTONS_OK, "Name Taken", "The name " + input + " is already in use");
 
                         return Response::NAME_TAKEN;
                     } 
@@ -574,13 +575,30 @@ int MachineDialog::AwaitChanges(LabData* ld)
         case Response::OPEN_STARTUP:     // User wishes to open .startup
             if (ld->txtEditorPath.empty())    // Check that a text editor has been configured
             {
-                NkUtils::DialogAlert(*this, "No Text Editor", "A text editor hasn't been configured. Please configure one in Preferences > Default Programs");
+                NkUtils::DialogAlert(*this, Gtk::BUTTONS_OK, "No Text Editor", "A text editor hasn't been configured. Please configure one in Preferences > Default Programs");
             }
             else 
-            {
-                std::string cmd = ld->txtEditorPath + " " + ld->labDir + "/" + lm->machineName + ".startup &";  // Only supports graphical text editors at this time
-                
-                system(cmd.c_str());
+            {                
+                int pid = fork();
+                if (!pid)       // Spawn text editor using fork-exec
+                {
+                    if (!fork())   // Double fork so that second child does not become a zombie
+                    {
+                        std::string path = ld->labDir + "/" + lm->machineName + ".startup";
+                        const char* editorPathC = ld->txtEditorPath.c_str();
+
+                        if (execlp(editorPathC, editorPathC, path.c_str(), NULL) < 0) 
+                        {
+                            printf("Failed when starting text editor\n");
+                            exit(1);   // Terminate child process if exec failed
+                        }
+                    }
+                    else 
+                    {
+                        exit(0);   // Exit to relinquish control of child to system
+                    }
+                }
+                wait(NULL);   // Wait for first child to die
             }
 
             return Response::OPEN_STARTUP;
@@ -743,24 +761,35 @@ void MachineViewer::onAddPress()
 
 void MachineViewer::onDelPress(MachineRecord* record) 
 {
-    for (int i = 0; i < labData->machines.size(); i++)  // Delete the reference to the machine
+    switch (NkUtils::DialogAlert(*this, Gtk::BUTTONS_OK_CANCEL, "Are You Sure?", "The machine and its files will be lost forever")) 
     {
-        if (record->lm == labData->machines[i]) 
-        {
-            labData->machines.erase(labData->machines.begin() + i);
-            break;
-        }
+        case Gtk::RESPONSE_CANCEL :   // Operation was cancelled
+            return;
+
+        case Gtk::RESPONSE_OK :
+            for (int i = 0; i < labData->machines.size(); i++)  // Delete the reference to the machine
+            {
+                if (record->lm == labData->machines[i]) 
+                {
+                    labData->machines.erase(labData->machines.begin() + i);
+                    break;
+                }
+            }
+
+            for (MachineInterface* mi : record->lm->interfaces) 
+            {
+                delete mi;
+            }
+            delete record->lm;    // Free the machine's allocated memory
+
+            machineList.Remove(record);  // Update visible machine list
+
+            parent->UpdateCDViewer();   // Prevent user from editing deleted machine
+
+            std::string file = labData->labDir + "/" + record->lm->machineName;  // Delete machine files
+            std::remove(file.c_str());
+            std::remove((file + ".startup").c_str());
     }
-
-    for (MachineInterface* mi : record->lm->interfaces) 
-    {
-        delete mi;
-    }
-    delete record->lm;    // Free the machine's allocated memory
-
-    machineList.Remove(record);  // Update visible machine list
-
-    parent->UpdateCDViewer();   // Prevent user from editing deleted machine
 }
 
 MachineViewer::MachineRecord::MachineRecord(MachineViewer& parent, LabMachine* lm) :

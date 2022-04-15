@@ -1,6 +1,5 @@
 
 #include "NkUtils.h"
-#include <gtkmm/messagedialog.h>
 
 void NkUtils::set_margin_both(Gtk::Widget& widget, int val, Gtk::Orientation orientation /*= Gtk::ORIENTATION_HORIZONTAL*/) 
 {
@@ -16,9 +15,9 @@ void NkUtils::set_margin_both(Gtk::Widget& widget, int val, Gtk::Orientation ori
     }
 }
 
-int NkUtils::DialogAlert(Gtk::Window& parent, std::string title, std::string text) 
+int NkUtils::DialogAlert(Gtk::Window& parent, Gtk::ButtonsType buttons, std::string title, std::string text) 
 {
-    Gtk::MessageDialog alert(parent, title, false, Gtk::MESSAGE_ERROR, Gtk::BUTTONS_OK, true);
+    Gtk::MessageDialog alert(parent, title, false, Gtk::MESSAGE_ERROR, buttons, true);
     alert.set_secondary_text(text);
     
     return alert.run();
